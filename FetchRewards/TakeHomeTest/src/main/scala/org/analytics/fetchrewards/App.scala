@@ -1,9 +1,5 @@
 package org.analytics.fetchrewards
 
-/**
- * Hello world!
- *
- */
 object App {
   def main(args: Array[String]): Unit = {
     val analyticsOpt = args(0)
@@ -17,13 +13,11 @@ object App {
     val sc = sparkConfig.getSparkContext(sparkSession)
     val sqlContext = sparkConfig.getSqlContext(sparkSession)
 
-    val originalUserReceiptsDf = sqlContext.read.
-      format("csv").
-      option("header", "true").
-      option("inferSchema", "true").
-      load("C:\\Users\\saura\\Documents\\MS\\BigData\\FetchRewardsData\\rewards_receipts_lat_v3.csv")
+    val analyzeData = new AnalyzeData(sqlContext)
+    val nMonthsData = analyzeData.retrieveNMonthsData(noOfMonths)
 
-    originalUserReceiptsDf.show(false)
+    nMonthsData.show(false)
+    nMonthsData.printSchema()
 
     if (analyticsOpt.equalsIgnoreCase("analytics1")){
 
