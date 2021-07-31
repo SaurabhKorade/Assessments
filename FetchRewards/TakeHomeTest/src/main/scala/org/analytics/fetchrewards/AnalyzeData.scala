@@ -86,7 +86,7 @@ class AnalyzeData (sqlContext: SQLContext) {
     (bestPerformingStoreByState, leastPerformingStoreByState)
   }
 
-  //Query 2 : Find 5 % contribution of top 5 selling sub categories for each store
+  //Query 2 : Find % contribution of top 5 selling sub categories for each store
   def bestSelling5CategoriesByStore(nMonthsDataDf: DataFrame): DataFrame ={
     val byStoreNameAndSubCategory = Window.partitionBy("STORE_NAME").orderBy($"INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE".desc)
 

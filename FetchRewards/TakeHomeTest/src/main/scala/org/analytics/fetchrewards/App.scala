@@ -18,18 +18,20 @@ object App {
 
     val analyzeData = new AnalyzeData(sqlContext)
     val nMonthsDataDf = analyzeData.retrieveNMonthsData(noOfMonths)
+    val writeToDisk = new DiskWriter
 
     //nMonthsData.show(false)
     //nMonthsData.printSchema()
 
     if (analyticsOpt.equalsIgnoreCase("analytics1")){
       val (bestPerformingStoreByState, leastPerformingStoreByState) = analyzeData.storePerformanceByState(nMonthsDataDf)
-      bestPerformingStoreByState.show(false)
-      leastPerformingStoreByState.show(false)
+      writeToDisk.writeToDisk(bestPerformingStoreByState, outputFormat)
+      writeToDisk.writeToDisk(leastPerformingStoreByState, outputFormat)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics2")){
-      val top5SubCategoryTotalRevContri = analyzeData.bestSelling5CategoriesByStore(nMonthsDataDf)
-      top5SubCategoryTotalRevContri.show(false)
+      val top5SubCategoriesByStore = analyzeData.bestSelling5CategoriesByStore(nMonthsDataDf)
+//      writeToDisk.writeToDisk(top5SubCategoriesByStore, outputFormat)
+      top5SubCategoriesByStore.show(false)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics3")){
 
