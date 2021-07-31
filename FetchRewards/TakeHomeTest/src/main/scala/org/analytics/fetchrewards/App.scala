@@ -17,18 +17,19 @@ object App {
     val sqlContext = sparkConfig.getSqlContext(sparkSession)
 
     val analyzeData = new AnalyzeData(sqlContext)
-    val nMonthsData = analyzeData.retrieveNMonthsData(noOfMonths)
+    val nMonthsDataDf = analyzeData.retrieveNMonthsData(noOfMonths)
 
     //nMonthsData.show(false)
     //nMonthsData.printSchema()
 
     if (analyticsOpt.equalsIgnoreCase("analytics1")){
-      val (bestPerformingStoreByState, leastPerformingStoreByState) = analyzeData.storePerformanceByState(nMonthsData)
+      val (bestPerformingStoreByState, leastPerformingStoreByState) = analyzeData.storePerformanceByState(nMonthsDataDf)
       bestPerformingStoreByState.show(false)
       leastPerformingStoreByState.show(false)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics2")){
-
+      val top5SubCategoryTotalRevContri = analyzeData.bestSelling5CategoriesByStore(nMonthsDataDf)
+      top5SubCategoryTotalRevContri.show(false)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics3")){
 

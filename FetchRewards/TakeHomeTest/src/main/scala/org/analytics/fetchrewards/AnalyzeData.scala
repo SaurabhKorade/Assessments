@@ -85,4 +85,37 @@ class AnalyzeData (sqlContext: SQLContext) {
 
     (bestPerformingStoreByState, leastPerformingStoreByState)
   }
+
+  //Query 2 : Find 5 % contribution of top 5 selling sub categories for each store
+  def bestSelling5CategoriesByStore(nMonthsDataDf: DataFrame): DataFrame ={
+    val byStoreNameAndSubCategory = Window.partitionBy("STORE_NAME").orderBy($"INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE".desc)
+
+    //Get total sales per sub-category for each store
+    val totalSalesPerSubCategoryDf = nMonthsDataDf.
+      groupBy($"STORE_NAME",$"SUB_CATEGORY").
+      agg(sum(bround($"ITEM_PRICE")).
+        as("INDIVIDUAL_ITEM_TOTAL_PRICE"), sum(bround($"DISCOUNTED_PRICE")).
+        as("INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE"))
+
+    //Get revenue wise top 5 sub-categories for each store
+    val top5SubCategoriesPerStore = totalSalesPerSubCategoryDf.
+      withColumn("rowNum", row_number().over(byStoreNameAndSubCategory)).
+      where("rowNum < 6").drop("rowNum")
+
+    //Get total revenue for each store
+    //Total revenue is redundant data for next step, but keep for convenience of reading
+    val storeWiseTotalRevenueDf = nMonthsDataDf.
+      groupBy(col("STORE_NAME").as("STORENAME")).
+      agg(sum(bround($"DISCOUNTED_PRICE")).
+        as("TOTAL_REVENUE"))
+
+    //Calculate % of contribution for top 5 sub-categories for each store
+    val top5SubCategoryTotalRevContri = top5SubCategoriesPerStore.
+      join(storeWiseTotalRevenueDf, top5SubCategoriesPerStore("STORE_NAME").equalTo(storeWiseTotalRevenueDf("STORENAME"))).
+      withColumn("REVENUE_CONTRIBUTION_BY_%", floor(top5SubCategoriesPerStore("INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE").multiply(100).divide(storeWiseTotalRevenueDf("TOTAL_REVENUE")))).
+      drop(storeWiseTotalRevenueDf("STORENAME")).
+      drop(top5SubCategoriesPerStore("INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE"))
+
+    top5SubCategoryTotalRevContri
+  }
 }
