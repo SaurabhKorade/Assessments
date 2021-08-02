@@ -7,6 +7,7 @@ object App {
     val analyticsOpt = args(0)
     val noOfMonths = args(1).toInt
     val outputFormat = args(2)
+    val outputPath = args(3)
 
     val appName = "AnalyticsService"
     val sparkConfig = new SparkConfManager
@@ -25,13 +26,13 @@ object App {
 
     if (analyticsOpt.equalsIgnoreCase("analytics1")){
       val (bestPerformingStoreByState, leastPerformingStoreByState) = analyzeData.storePerformanceByState(nMonthsDataDf)
-      writeToDisk.writeToDisk(bestPerformingStoreByState, outputFormat)
-      writeToDisk.writeToDisk(leastPerformingStoreByState, outputFormat)
+      writeToDisk.writeToDisk(bestPerformingStoreByState, outputFormat, outputPath)
+      writeToDisk.writeToDisk(leastPerformingStoreByState, outputFormat, outputPath)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics2")){
       val top5SubCategoriesByStore = analyzeData.bestSelling5CategoriesByStore(nMonthsDataDf)
-//      writeToDisk.writeToDisk(top5SubCategoriesByStore, outputFormat)
-      top5SubCategoriesByStore.show(false)
+      writeToDisk.writeToDisk(top5SubCategoriesByStore, outputFormat, outputPath)
+//      top5SubCategoriesByStore.show(false)
     }
     else if (analyticsOpt.equalsIgnoreCase("analytics3")){
 

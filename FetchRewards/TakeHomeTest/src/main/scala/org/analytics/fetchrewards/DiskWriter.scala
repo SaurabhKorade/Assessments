@@ -4,16 +4,16 @@ import org.apache.spark.sql.DataFrame
 
 class DiskWriter {
 
-  //Accept output path from user or write to project resources directory
-  def writeToDisk(resultDf: DataFrame, format: String): Unit = {
+  //Writes result to disk in specified format
+  def writeToDisk(resultDf: DataFrame, format: String, path: String): Unit = {
     if (format.equalsIgnoreCase("csv")) {
-      resultDf.write.csv("")
+      resultDf.write.csv(path)
     }
     else if (format.equalsIgnoreCase("json")) {
-      resultDf.write.parquet("")
+      resultDf.write.parquet(path)
     }
     else if (format.equalsIgnoreCase("parquet")) {
-      resultDf.write.json("")
+      resultDf.write.json(path)
     }
   }
 

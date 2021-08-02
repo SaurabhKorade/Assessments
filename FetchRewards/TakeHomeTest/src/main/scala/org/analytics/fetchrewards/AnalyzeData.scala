@@ -1,7 +1,7 @@
 package org.analytics.fetchrewards
 
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions.{bround, col, floor, max, months_between, round, row_number, sum, udf}
+import org.apache.spark.sql.functions.{approx_count_distinct, bround, col, count, countDistinct, desc, floor, max, months_between, round, row_number, sum, udf}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 
 class AnalyzeData (sqlContext: SQLContext) {
@@ -39,7 +39,7 @@ class AnalyzeData (sqlContext: SQLContext) {
       withColumn("DATE_DIFF", round(months_between($"MAX_DATE", $"RECEIPT_PURCHASE_DATE"))).
       drop("REWARDS_RECEIPT_ID", "MAX_DATE")
 
-    //UDF to get sub-category from category to in-depth analysis. Get the second category.
+    //UDF to get sub-category from category for in-depth analysis. Get the second category.
     //Example: Grocery|Canned & Packages => Canned & Packages
     // Other => Other
     val getSubCategory =  (strCategory:String) => {
@@ -61,7 +61,7 @@ class AnalyzeData (sqlContext: SQLContext) {
     nMonthsDataDf
   }
 
-  //Query 1 : Find best and least performing store by state
+  //Query 1 : Find best and least performing store (as per revenue) by state
   def storePerformanceByState(nMonthsDataDf: DataFrame): (DataFrame, DataFrame) ={
     val byStoreStateDesc = Window.partitionBy("STORE_STATE").orderBy($"TOTAL_REVENUE".desc)
     val byStoreStateAsc = Window.partitionBy("STORE_STATE").orderBy($"TOTAL_REVENUE".asc)
@@ -117,5 +117,24 @@ class AnalyzeData (sqlContext: SQLContext) {
       drop(top5SubCategoriesPerStore("INDIVIDUAL_ITEM_TOTAL_SALE_DISCOUNTED_PRICE"))
 
     top5SubCategoryTotalRevContri
+  }
+
+  //Query 3 : Find best selling items (as per customer count) by state
+  // In case if there are multiple best selling items, choose any one
+  def countOfUsersPerItem(nMonthsDataDf: DataFrame): DataFrame ={
+    val byStoreNameItemName = Window.partitionBy("STORE_STATE").orderBy('CUSTOMER_COUNT.desc)
+
+    val countOfUsersPerProductDf = nMonthsDataDf.
+      groupBy("STORE_STATE", "RECEIPT_DESCRIPTION").
+      agg(countDistinct("USER_ID").as("CUSTOMER_COUNT")).
+      sort(desc("CUSTOMER_COUNT"))
+
+    //Get best selling product per state
+    val topSellingProductByState = countOfUsersPerProductDf.
+      withColumn("rowNum", row_number().over(byStoreNameItemName)).
+      where("rowNum == 1").
+      drop("rowNum")
+
+    topSellingProductByState
   }
 }
