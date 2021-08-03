@@ -6,8 +6,8 @@ class SparkConfManager {
   //create spark session
   def getSparkSession(appName: String): SparkSession = {
     val sparkSession = SparkSession.builder()
+//      .master("local")
       .appName(appName)
-      .master("local")
       .getOrCreate()
     sparkSession
   }

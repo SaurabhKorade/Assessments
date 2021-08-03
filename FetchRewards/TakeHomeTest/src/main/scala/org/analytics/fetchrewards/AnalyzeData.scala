@@ -1,25 +1,34 @@
 package org.analytics.fetchrewards
 
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions.{approx_count_distinct, bround, col, count, countDistinct, desc, floor, max, months_between, round, row_number, sum, udf}
+import org.apache.spark.sql.functions.{bround, col, countDistinct, desc, floor, max, months_between, round, row_number, sum, udf}
 import org.apache.spark.sql.{DataFrame, SQLContext}
 
-class AnalyzeData (sqlContext: SQLContext) {
+class AnalyzeData (sqlContext: SQLContext, sparkSession: SparkSession) {
   import sqlContext.implicits._
-  def retrieveNMonthsData(noOfMonths: Int): DataFrame ={
+  def retrieveNMonthsData(noOfMonths: Int, userDataInputPath: String, receiptDescriptionInputPath: String): DataFrame ={
+
+    /*Not able to read inputs from resources while running jar. Recheck later.
+    val userReceiptInputFile = getClass.getResource("/rewards_receipts_lat_v3.csv")
+    val receiptDescriptionInputFile = getClass.getResource("/rewards_receipts_item_lat_v2.csv")
+    println(userReceiptInputFile.getFile)
+    println(receiptDescriptionInputFile.getFile)*/
 
     //Reading data from local disk. Update the path to read from project resources directory.
-    val originalUserReceiptsDf = sqlContext.read.
+    val originalUserReceiptsDf = sparkSession.read.
       format("csv").
       option("header", "true").
       option("inferSchema", "true").
-      load("C:\\Users\\saura\\Documents\\MS\\BigData\\FetchRewardsData\\rewards_receipts_lat_v3.csv")
+      load(userDataInputPath)
+      //load("C:\\Users\\saura\\Documents\\MS\\BigData\\FetchRewardsData\\rewards_receipts_lat_v3.csv")
 
-    val originalReceiptDescriptionDf = sqlContext.read.
+    val originalReceiptDescriptionDf = sparkSession.read.
       format("csv").
       option("header", "true").
       option("inferSchema", "true").
-      load("C:\\Users\\saura\\Documents\\MS\\BigData\\FetchRewardsData\\rewards_receipts_item_lat_v2.csv")
+      load(receiptDescriptionInputPath)
+      //load("C:\\Users\\saura\\Documents\\MS\\BigData\\FetchRewardsData\\rewards_receipts_item_lat_v2.csv")
 
     //Get necessary information only
     val necessaryUserDataDF = originalUserReceiptsDf.select("RECEIPT_ID", "USER_ID", "STORE_NAME", "STORE_CITY", "STORE_STATE", "RECEIPT_PURCHASE_DATE", "RECEIPT_TOTAL", "RECEIPT_ITEM_COUNT")
@@ -53,8 +62,9 @@ class AnalyzeData (sqlContext: SQLContext) {
     val getSubCategoryUDF = udf(getSubCategory)
 
     //Get n months of data specified in the argument
+    //Use maximum date available in the data as start date, and get n months of data prior to that date
     val nMonthsDataDf = completeInfoDf.
-      filter(completeInfoDf("DATE_DIFF") >= noOfMonths).
+      filter(completeInfoDf("DATE_DIFF") <= noOfMonths).
       withColumn("SUB_CATEGORY", getSubCategoryUDF('CATEGORY)).
       drop("DATE_DIFF", "CATEGORY")
 
@@ -120,8 +130,8 @@ class AnalyzeData (sqlContext: SQLContext) {
   }
 
   //Query 3 : Find best selling items (as per customer count) by state
-  // In case if there are multiple best selling items, choose any one
-  def countOfUsersPerItem(nMonthsDataDf: DataFrame): DataFrame ={
+  //In case if there are multiple best selling items, choose any one
+  def countOfUsersPerProduct(nMonthsDataDf: DataFrame): DataFrame ={
     val byStoreNameItemName = Window.partitionBy("STORE_STATE").orderBy('CUSTOMER_COUNT.desc)
 
     val countOfUsersPerProductDf = nMonthsDataDf.
